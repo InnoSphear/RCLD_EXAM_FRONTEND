@@ -30,6 +30,10 @@ const toLocalInput = (d) => {
   return `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}T${pad(dt.getHours())}:${pad(dt.getMinutes())}`;
 };
 
+// datetime-local has no timezone; convert the user's local wall-clock time to an
+// absolute ISO instant so the server stores/compares the correct moment in time.
+const toIso = (v) => (v ? new Date(v).toISOString() : v);
+
 export default function ExamEditor() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -137,6 +141,8 @@ export default function ExamEditor() {
     setErrors({});
     const payload = {
       ...form,
+      startsAt: toIso(form.startsAt),
+      endsAt: toIso(form.endsAt),
       questions: selected.map((s, i) => ({ question: s.question, marks: s.marks, order: i })),
     };
     try {
