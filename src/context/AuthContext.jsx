@@ -3,9 +3,32 @@ import * as api from '../api/endpoints';
 
 const AuthContext = createContext(null);
 
+const USER_KEY = 'rcld_user';
+function readStoredUser() {
+  try {
+    const raw = localStorage.getItem(USER_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+function storeUser(u) {
+  try {
+    if (u) localStorage.setItem(USER_KEY, JSON.stringify(u));
+    else localStorage.removeItem(USER_KEY);
+  } catch {
+    /* storage unavailable */
+  }
+}
+
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
+  const [user, setUserState] = useState(readStoredUser);
   const [loading, setLoading] = useState(true);
+
+  const setUser = useCallback((u) => {
+    setUserState(u);
+    storeUser(u);
+  }, []);
 
   useEffect(() => {
     let alive = true;
@@ -13,12 +36,15 @@ export function AuthProvider({ children }) {
       try {
         const data = await api.me();
         if (alive) setUser(data.user || data);
-      } catch {
+      } catch (e) {
+        const status = e?.response?.status;
         try {
           const data = await api.refreshSession();
           if (alive) setUser(data.user || data);
-        } catch {
-          if (alive) setUser(null);
+        } catch (e2) {
+          const status2 = e2?.response?.status;
+          const authFailed = [401, 403].includes(status) || [401, 403].includes(status2);
+          if (alive && authFailed) setUser(null);
         }
       } finally {
         if (alive) setLoading(false);
@@ -27,18 +53,18 @@ export function AuthProvider({ children }) {
     return () => {
       alive = false;
     };
-  }, []);
+  }, [setUser]);
 
   const doLogin = useCallback(async (email, password) => {
     const data = await api.login(email, password);
     setUser(data.user);
     return data.user;
-  }, []);
+  }, [setUser]);
 
   const doLogout = useCallback(async () => {
     await api.logout();
     setUser(null);
-  }, []);
+  }, [setUser]);
 
   const hasPermission = useCallback(
     (perm) => {

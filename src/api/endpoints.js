@@ -2,7 +2,8 @@ import api, { setAccessToken } from './client';
 
 export async function login(email, password) {
   const r = await api.post('/auth/login', { email, password });
-  setAccessToken(r.data?.data?.accessToken);
+  const token = r.data?.data?.accessToken;
+  if (token) setAccessToken(token);
   return r.data.data;
 }
 export async function logout() {
@@ -14,7 +15,8 @@ export async function logout() {
 }
 export async function me() {
   const r = await api.get('/auth/me');
-  setAccessToken(r.data?.data?.accessToken);
+  const token = r.data?.data?.accessToken;
+  if (token) setAccessToken(token);
   return r.data.data.user;
 }
 export async function changePassword(currentPassword, newPassword) {
@@ -23,7 +25,8 @@ export async function changePassword(currentPassword, newPassword) {
 }
 export async function refreshSession() {
   const r = await api.post('/auth/refresh');
-  setAccessToken(r.data?.data?.accessToken);
+  const token = r.data?.data?.accessToken;
+  if (token) setAccessToken(token);
   return r.data.data;
 }
 
