@@ -4,6 +4,7 @@ import { apiError } from '../../api/client';
 import { useToast } from '../../context/ToastContext';
 import { Spinner, ErrorState, EmptyState, Pagination, Badge, StatCard } from '../../components/ui';
 import Modal from '../../components/Modal';
+import QuestionReview from '../../components/QuestionReview';
 
 export default function StudentResults() {
   const toast = useToast();
@@ -134,19 +135,7 @@ export default function StudentResults() {
                     <p className="text-sm font-semibold text-slate-700">Question-wise breakdown</p>
                     <ul className="space-y-1.5 max-h-80 overflow-y-auto">
                       {r.evaluation.map((ev, i) => (
-                        <li key={i} className="flex items-start gap-2 rounded-lg bg-white/70 border border-slate-200/70 px-3 py-2 text-sm">
-                          <span className={`font-bold ${ev.isCorrect ? 'text-emerald-600' : ev.awarded > 0 ? 'text-amber-600' : 'text-red-500'}`}>
-                            {ev.isCorrect ? '✓' : ev.awarded > 0 ? '~' : '✗'}
-                          </span>
-                          <span className="min-w-0 flex-1">
-                            <span className="block text-slate-700">{ev.question?.statement || 'Question'}</span>
-                            <span className="text-xs text-slate-500">
-                              Your answer: {Array.isArray(ev.selected) && ev.selected.length ? ev.selected.join(', ') : '—'} · awarded {ev.awarded}
-                              {detail.canSeeAnswers && ev.question?.correctAnswers?.length > 0 && ` · correct: ${ev.question.correctAnswers.join(', ')}`}
-                            </span>
-                            {ev.question?.explanation && <span className="block text-xs text-slate-500 mt-0.5">↳ {ev.question.explanation}</span>}
-                          </span>
-                        </li>
+                        <QuestionReview key={i} item={ev} index={i} />
                       ))}
                     </ul>
                   </div>

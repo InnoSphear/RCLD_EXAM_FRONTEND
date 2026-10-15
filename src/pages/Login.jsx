@@ -39,7 +39,7 @@ export default function Login() {
         </div>
         <div className="glass-strong rounded-3xl p-7 sm:p-8">
           <h1 className="text-xl font-bold text-slate-800">Sign in</h1>
-          <p className="text-sm text-slate-500 mt-1">Access the RCLD Online Examination Portal</p>
+          <p className="text-sm text-slate-500 mt-1">Access the RCLD ISLAMPUR Online Examination Portal</p>
 
           <form onSubmit={submit} className="mt-6 space-y-4" noValidate>
             <Field label="Email address" required>

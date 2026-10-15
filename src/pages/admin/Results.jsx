@@ -6,6 +6,7 @@ import { useToast } from '../../context/ToastContext';
 import { useAuth } from '../../context/AuthContext';
 import { Spinner, ErrorState, EmptyState, Pagination, Badge, StatCard, Field, inputClass } from '../../components/ui';
 import Modal, { ConfirmDialog } from '../../components/Modal';
+import QuestionReview from '../../components/QuestionReview';
 
 const EMPTY_FILTERS = { exam: '', semester: '', subject: '', status: '', passStatus: '', minScore: '', maxScore: '', from: '', to: '', search: '' };
 
@@ -326,17 +327,7 @@ export default function Results() {
                     <p className="text-sm font-semibold text-slate-700">Question-wise evaluation</p>
                     <ul className="space-y-1.5 max-h-72 overflow-y-auto">
                       {r.evaluation.map((ev, i) => (
-                        <li key={i} className="flex items-start gap-2 rounded-lg bg-white/70 border border-slate-200/70 px-3 py-2 text-sm">
-                          <span className={`font-bold ${ev.isCorrect ? 'text-emerald-600' : ev.awarded > 0 ? 'text-amber-600' : 'text-red-500'}`}>
-                            {ev.isCorrect ? '✓' : ev.awarded > 0 ? '~' : '✗'}
-                          </span>
-                          <span className="min-w-0 flex-1">
-                            <span className="block text-slate-700 truncate">{ev.question?.statement || ev.question}</span>
-                            <span className="text-xs text-slate-500">
-                              Selected: {Array.isArray(ev.selected) && ev.selected.length ? ev.selected.join(', ') : '—'} · awarded {ev.awarded}
-                            </span>
-                          </span>
-                        </li>
+                        <QuestionReview key={i} item={ev} index={i} />
                       ))}
                     </ul>
                   </div>
