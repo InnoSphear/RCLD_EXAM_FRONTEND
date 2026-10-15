@@ -1,12 +1,12 @@
 import { useEffect, useState, useCallback } from 'react';
-import { get, post, patch, download } from '../../api/endpoints';
+import { get, post, patch, del, download } from '../../api/endpoints';
 import { apiError } from '../../api/client';
 import { useToast } from '../../context/ToastContext';
 import { useAuth } from '../../context/AuthContext';
 import { Spinner, ErrorState, EmptyState, Pagination, Badge, Field, inputClass } from '../../components/ui';
 import Modal, { ConfirmDialog } from '../../components/Modal';
 
-const EMPTY = { fullName: '', email: '', phone: '', studentId: '', rollNumber: '', course: '', semester: '', status: 'active', password: '' };
+const EMPTY = { fullName: '', email: '', phone: '', studentId: '', course: '', semester: '', status: 'active', password: '' };
 
 export default function Students() {
   const toast = useToast();
@@ -78,7 +78,6 @@ export default function Students() {
       email: s.email || '',
       phone: s.phone || '',
       studentId: s.studentId || '',
-      rollNumber: s.rollNumber || '',
       course: s.course || '',
       semester: s.semester?._id || '',
       status: s.status,
@@ -142,6 +141,61 @@ export default function Students() {
     });
   };
 
+  const removeStudent = (s) => {
+    setConfirm({
+      title: `Delete "${s.name}"?`,
+      message: 'This permanently removes the student and all their exam attempts and results.',
+      danger: true,
+      onConfirm: async () => {
+        try {
+          await del(`/students/${s._id}`);
+          toast.success('Student deleted');
+          setSelected((prev) => {
+            const n = new Set(prev);
+            n.delete(s._id);
+            return n;
+          });
+          load();
+        } catch (e) {
+          toast.error(apiError(e).message);
+        } finally {
+          setConfirm(null);
+        }
+      },
+    });
+  };
+
+  const bulkRemove = () => {
+    const ids = [...selected];
+    setConfirm({
+      title: `Delete ${ids.length} student${ids.length > 1 ? 's' : ''}?`,
+      message: 'This permanently removes the selected students and all their exam attempts and results.',
+      danger: true,
+      onConfirm: async () => {
+        try {
+          const r = await post('/students/bulk-delete', { ids });
+          toast.success(`${r.data.deleted} student(s) deleted`);
+          setSelected(new Set());
+          load();
+        } catch (e) {
+          toast.error(apiError(e).message);
+        } finally {
+          setConfirm(null);
+        }
+      },
+    });
+  };
+
+  const allSelected = items.length > 0 && items.every((s) => selected.has(s._id));
+  const toggleSelectAll = () => {
+    setSelected((prev) => {
+      const n = new Set(prev);
+      if (allSelected) items.forEach((s) => n.delete(s._id));
+      else items.forEach((s) => n.add(s._id));
+      return n;
+    });
+  };
+
   const doExport = async (format) => {
     try {
       await download('/students/export', { format, ...filters, search: debouncedSearch }, `students_${new Date().toISOString().slice(0, 10)}.${format}`);
@@ -182,7 +236,7 @@ export default function Students() {
       <div className="glass rounded-2xl p-4 flex flex-wrap gap-3 items-center">
         <input
           className="glass-input rounded-xl px-3.5 py-2 text-sm flex-1 min-w-[200px]"
-          placeholder="Search name, email, phone, student ID, roll number…"
+          placeholder="Search name, email, phone, student ID…"
           value={search}
           onChange={(e) => {
             setSearch(e.target.value);
@@ -228,15 +282,24 @@ export default function Students() {
         </select>
       </div>
 
-      {selected.size > 0 && hasPermission('students.edit') && (
+      {selected.size > 0 && (hasPermission('students.edit') || hasPermission('students.delete')) && (
         <div className="glass rounded-xl px-4 py-3 flex flex-wrap items-center gap-3 text-sm">
           <span className="font-medium text-slate-600">{selected.size} selected</span>
-          <button className="btn btn-ghost btn-sm" onClick={() => bulkStatus('active')}>
-            Activate
-          </button>
-          <button className="btn btn-ghost btn-sm" onClick={() => bulkStatus('inactive')}>
-            Deactivate
-          </button>
+          {hasPermission('students.edit') && (
+            <>
+              <button className="btn btn-ghost btn-sm" onClick={() => bulkStatus('active')}>
+                Activate
+              </button>
+              <button className="btn btn-ghost btn-sm" onClick={() => bulkStatus('inactive')}>
+                Deactivate
+              </button>
+            </>
+          )}
+          {hasPermission('students.delete') && (
+            <button className="btn btn-danger btn-sm" onClick={bulkRemove}>
+              Delete
+            </button>
+          )}
           <button className="btn btn-ghost btn-sm" onClick={() => setSelected(new Set())}>
             Clear
           </button>
@@ -255,10 +318,18 @@ export default function Students() {
             <table className="data-table">
               <thead>
                 <tr>
-                  {hasPermission('students.edit') && <th style={{ width: 40 }}></th>}
+                  {hasPermission('students.delete') && (
+                    <th style={{ width: 40 }}>
+                      <input
+                        type="checkbox"
+                        checked={allSelected}
+                        onChange={toggleSelectAll}
+                        aria-label="Select all students"
+                      />
+                    </th>
+                  )}
                   <th>Student</th>
                   <th>Student ID</th>
-                  <th>Roll No.</th>
                   <th>Semester</th>
                   <th>Status</th>
                   <th>Registered</th>
@@ -268,7 +339,7 @@ export default function Students() {
               <tbody>
                 {items.map((s) => (
                   <tr key={s._id}>
-                    {hasPermission('students.edit') && (
+                    {hasPermission('students.delete') && (
                       <td>
                         <input
                           type="checkbox"
@@ -284,7 +355,6 @@ export default function Students() {
                       {s.phone && <p className="text-xs text-slate-400">{s.phone}</p>}
                     </td>
                     <td className="font-mono text-xs">{s.studentId}</td>
-                    <td>{s.rollNumber || '—'}</td>
                     <td>{s.semester?.title || '—'}</td>
                     <td>
                       <Badge tone={s.status === 'active' ? 'green' : 'red'}>{s.status}</Badge>
@@ -298,6 +368,11 @@ export default function Students() {
                         {hasPermission('students.edit') && (
                           <button className="btn btn-ghost btn-sm" onClick={() => openEdit(s)}>
                             Edit
+                          </button>
+                        )}
+                        {hasPermission('students.delete') && (
+                          <button className="btn btn-ghost btn-sm text-red-600" onClick={() => removeStudent(s)}>
+                            Delete
                           </button>
                         )}
                       </div>
@@ -326,9 +401,6 @@ export default function Students() {
           </Field>
           <Field label="Student ID" required error={formErrors.studentId}>
             <input className={inputClass} value={form.studentId} onChange={set('studentId')} required />
-          </Field>
-          <Field label="Roll number" error={formErrors.rollNumber}>
-            <input className={inputClass} value={form.rollNumber} onChange={set('rollNumber')} />
           </Field>
           <Field label="Course" error={formErrors.course}>
             <input className={inputClass} value={form.course} onChange={set('course')} placeholder="BCA" />
@@ -377,7 +449,6 @@ export default function Students() {
               ['Email', detail.email],
               ['Phone', detail.phone || '—'],
               ['Student ID', detail.studentId],
-              ['Roll number', detail.rollNumber || '—'],
               ['Course', detail.course || '—'],
               ['Semester', detail.semester?.title || '—'],
               ['Status', detail.status],

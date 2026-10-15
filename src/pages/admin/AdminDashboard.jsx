@@ -115,6 +115,31 @@ export default function AdminDashboard() {
 
       <div className="glass rounded-2xl p-5">
         <div className="flex items-center justify-between mb-4">
+          <h2 className="font-semibold text-slate-700">Questions by subject</h2>
+          {hasPermission('questions.view') && (
+            <Link to="/admin/questions" className="text-sm text-brand-600 hover:underline">
+              Open question bank →
+            </Link>
+          )}
+        </div>
+        {data.questionsBySubject?.length ? (
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {data.questionsBySubject.map((s, i) => (
+              <div key={i} className="rounded-xl bg-white/60 border border-white/70 px-4 py-3">
+                <p className="font-medium text-slate-700 truncate">{s.subject}</p>
+                <p className="text-xs text-slate-500 mt-1">
+                  {s.count} question{s.count === 1 ? '' : 's'} · {s.published} published
+                </p>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-slate-500">No questions yet.</p>
+        )}
+      </div>
+
+      <div className="glass rounded-2xl p-5">
+        <div className="flex items-center justify-between mb-4">
           <h2 className="font-semibold text-slate-700">Recent activity</h2>
           {hasPermission('audit.view') && (
             <Link to="/admin/audit-logs" className="text-sm text-brand-600 hover:underline">

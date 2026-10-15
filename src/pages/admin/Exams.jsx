@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { get, post } from '../../api/endpoints';
+import { get, post, del } from '../../api/endpoints';
 import { apiError } from '../../api/client';
 import { useToast } from '../../context/ToastContext';
 import { useAuth } from '../../context/AuthContext';
@@ -70,6 +70,24 @@ export default function Exams() {
         } catch (e) {
           const er = apiError(e);
           toast.error(er.details ? `${er.message}: ${er.details.allowed?.join(', ') || JSON.stringify(er.details)}` : er.message);
+        }
+      },
+    });
+  };
+
+  const removeExam = (exam) => {
+    setConfirm({
+      title: `Delete "${exam.title}"?`,
+      message: 'This permanently removes the exam and all its attempts and results.',
+      danger: true,
+      onConfirm: async () => {
+        setConfirm(null);
+        try {
+          await del(`/exams/${exam._id}`);
+          toast.success('Exam deleted');
+          load();
+        } catch (e) {
+          toast.error(apiError(e).message);
         }
       },
     });
@@ -178,6 +196,11 @@ export default function Exams() {
                         </button>
                       );
                     })}
+                    {hasPermission('exams.delete') && (
+                      <button className="btn btn-ghost btn-sm text-red-600" onClick={() => removeExam(e)}>
+                        Delete
+                      </button>
+                    )}
                   </div>
                 </div>
               </article>
@@ -193,7 +216,8 @@ export default function Exams() {
         onConfirm={confirm?.onConfirm}
         title={confirm?.title}
         message={confirm?.message}
-        confirmLabel="Change status"
+        confirmLabel={confirm?.confirmLabel || 'Change status'}
+        danger={confirm?.danger}
       />
     </div>
   );

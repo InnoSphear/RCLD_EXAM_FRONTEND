@@ -9,8 +9,19 @@ export const api = axios.create({
 });
 
 let accessToken = null;
+try {
+  accessToken = localStorage.getItem('rcld_access_token') || null;
+} catch {
+  accessToken = null;
+}
 export function setAccessToken(token) {
   accessToken = token || null;
+  try {
+    if (accessToken) localStorage.setItem('rcld_access_token', accessToken);
+    else localStorage.removeItem('rcld_access_token');
+  } catch {
+    /* storage unavailable */
+  }
 }
 export function getAccessToken() {
   return accessToken;
@@ -35,12 +46,12 @@ api.interceptors.response.use(
         refreshing = refreshing || api.post('/auth/refresh');
         const r = await refreshing;
         refreshing = null;
-        accessToken = r.data?.data?.accessToken || null;
+        setAccessToken(r.data?.data?.accessToken || null);
         original.headers.Authorization = `Bearer ${accessToken}`;
         return api(original);
       } catch {
         refreshing = null;
-        accessToken = null;
+        setAccessToken(null);
         if (window.location.pathname !== '/login') {
           window.location.href = '/login';
         }

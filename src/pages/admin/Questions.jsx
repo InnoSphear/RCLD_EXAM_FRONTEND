@@ -210,6 +210,16 @@ export default function Questions() {
 
   const clearSelection = () => setSelected(new Set());
 
+  const allSelected = items.length > 0 && items.every((q) => selected.has(q._id));
+  const toggleSelectAll = () => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (allSelected) items.forEach((q) => next.delete(q._id));
+      else items.forEach((q) => next.add(q._id));
+      return next;
+    });
+  };
+
   const bulkRemove = () => {
     const ids = [...selected];
     setConfirm({
@@ -240,7 +250,6 @@ export default function Questions() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-slate-800">Question bank</h1>
-          <p className="text-sm text-slate-500">{total} questions</p>
         </div>
         {hasPermission('questions.create') && (
           <button className="btn btn-primary btn-sm" onClick={openCreate}>
@@ -281,12 +290,18 @@ export default function Questions() {
         </select>
       </div>
 
-      {hasPermission('questions.delete') && selected.size > 0 && (
+      {hasPermission('questions.delete') && items.length > 0 && (
         <div className="glass rounded-2xl p-3 flex flex-wrap items-center justify-between gap-3">
-          <span className="text-sm text-slate-600">{selected.size} question{selected.size > 1 ? 's' : ''} selected</span>
-          <div className="flex gap-2">
-            <button className="btn btn-ghost btn-sm" onClick={clearSelection}>Clear</button>
-            <button className="btn btn-danger btn-sm" onClick={bulkRemove}>Delete selected</button>
+          <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
+            <input type="checkbox" className="h-4 w-4" checked={allSelected} onChange={toggleSelectAll} />
+            Select all ({items.length})
+          </label>
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-slate-600">{selected.size} selected</span>
+            <div className="flex gap-2">
+              <button className="btn btn-ghost btn-sm" onClick={clearSelection} disabled={selected.size === 0}>Clear</button>
+              <button className="btn btn-danger btn-sm" onClick={bulkRemove} disabled={selected.size === 0}>Delete selected</button>
+            </div>
           </div>
         </div>
       )}
